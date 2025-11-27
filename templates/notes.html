@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Your Encrypted Notes</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+  <h2>Welcome, {{ email }}</h2>
+
+  <label>Select Date</label>
+  <input type="date" id="noteDate" onchange="loadNotesForDate()">
+
+  <textarea id="note" rows="6" placeholder="Write your note here..."></textarea>
+
+  <button onclick="saveNote()">Save Note</button>
+
+  <h3>Notes</h3>
+  <div id="notes"></div>
+
+  <a href="/logout">Logout</a>
+</div>
+
+<script src="/static/crypto-js.js"></script>
+
+<script>
+let userKey = prompt("Set your encryption key (Do NOT forget it!)");
+
+async function saveNote() {
+    let text = document.getElementById("note").value;
+    let date = document.getElementById("noteDate").value;
+
+    if (!date) return alert("Please choose a date");
+
+    let encrypted = CryptoJS.AES.encrypt(text, userKey).toString();
+
+    await fetch("/save_note", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: "encrypted_note=" + encodeURIComponent(encrypted) + "&date=" + encodeURIComponent(date)
+    });
+
+    document.getElementById("note").value = "";
+    loadNotesForDate();
+}
+
+async function loadNotesForDate() {
+    let date = document.getElementById("noteDate").value;
+    let res = await fetch("/get_notes_by_date?date=" + date);
+    let data = await res.json();
+
+    let html = "";
+    data.notes.forEach(enc => {
+        let bytes = CryptoJS.AES.decrypt(enc, userKey);
+        let plain = bytes.toString(CryptoJS.enc.Utf8);
+        html += `<div>${plain}</div>`;
+    });
+
+    document.getElementById("notes").innerHTML = html;
+}
+
+window.onload = () => {
+    let today = new Date().toISOString().split("T")[0];
+    document.getElementById("noteDate").value = today;
+    loadNotesForDate();
+};
+</script>
+
+</body>
+</html>
