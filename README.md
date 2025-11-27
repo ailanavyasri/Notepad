@@ -11,5 +11,3 @@ Backend
 ✔ SQLite (built-in database)
 ✔ Flask-Mail (for email login OTP)
 
-
-#apppassword------ auwn gfjn chic izxz
